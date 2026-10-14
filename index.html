@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Boletas de honorarios del profesional · AgendaPro CX</title>
+<link rel="preconnect" href="https://api.fontshare.com"/>
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@300,400,500,600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --navy: #1D1D3D;
+    --navy-mid: #7A7DA4;
+    --navy-light: #9DA1CA;
+    --morado: #812DF2;
+    --morado-pale: #EEE2FF;
+    --naranja: #FF7A59;
+    --naranja-light: #FFB390;
+    --gris: #F5F5F5;
+    --gris-mid: #A8A8A8;
+    --white: #FFFFFF;
+    --line: #E4E4EC;
+    --drawer-w: min(420px, 92vw);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Clash Display', system-ui, sans-serif;
+    background: var(--gris);
+    color: var(--navy);
+    min-height: 100vh;
+    line-height: 1.45;
+  }
+  .page { max-width: 980px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+  .badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--naranja);
+    background: #FFF0EB;
+    padding: 0.35rem 0.7rem;
+    border-radius: 4px;
+    margin-bottom: 0.85rem;
+  }
+  h1 { font-size: clamp(1.55rem, 3vw, 2rem); font-weight: 600; letter-spacing: -0.02em; margin-bottom: 0.4rem; }
+  .lead { font-weight: 300; font-size: 1.05rem; color: var(--navy-mid); max-width: 40rem; margin-bottom: 0.75rem; }
+  .hint { font-size: 0.9rem; color: var(--gris-mid); margin-bottom: 2rem; }
+  .hint strong { color: var(--navy-mid); font-weight: 500; }
+  .phase { margin-bottom: 1.75rem; }
+  .phase-label {
+    font-size: 0.72rem; font-weight: 500; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--navy-light); margin-bottom: 0.65rem; padding-left: 0.15rem;
+  }
+  .row { display: flex; flex-wrap: wrap; align-items: stretch; gap: 0.55rem; }
+  .arrow { display: flex; align-items: center; color: var(--navy-light); font-size: 1.1rem; padding: 0 0.1rem; user-select: none; }
+  .node {
+    flex: 1 1 140px; min-width: 130px; max-width: 210px;
+    background: var(--white); border: 1px solid var(--line); border-left: 3px solid var(--morado);
+    border-radius: 8px; padding: 0.85rem 0.95rem; cursor: pointer; text-align: left;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s; font: inherit; color: inherit;
+  }
+  .node:hover, .node:focus-visible {
+    border-color: var(--morado); box-shadow: 0 6px 20px rgba(29, 29, 61, 0.08);
+    transform: translateY(-2px); outline: none;
+  }
+  .node.active { border-color: var(--naranja); border-left-color: var(--naranja); box-shadow: 0 0 0 2px rgba(255, 122, 89, 0.25); }
+  .node.stop-node { border-left-color: var(--naranja); max-width: 240px; }
+  .node .num { display: block; font-size: 0.7rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--navy-light); margin-bottom: 0.25rem; }
+  .node .title { font-size: 0.95rem; font-weight: 500; letter-spacing: -0.01em; }
+  .node .tap { display: block; margin-top: 0.45rem; font-size: 0.72rem; font-weight: 400; color: var(--morado); opacity: 0; transition: opacity 0.15s; }
+  .node:hover .tap, .node:focus-visible .tap { opacity: 1; }
+  .branch { display: grid; grid-template-columns: 1fr; gap: 0.75rem; margin: 0.5rem 0 0.25rem; }
+  @media (min-width: 720px) { .branch { grid-template-columns: 1fr; } }
+  .branch-side { background: #FFF8F5; border: 1px dashed var(--naranja-light); border-radius: 10px; padding: 0.85rem; }
+  .branch-side .phase-label { color: var(--naranja); }
+  .branch-note { font-size: 0.78rem; color: var(--navy-mid); font-weight: 300; margin-top: 0.5rem; }
+  .footer-link { margin-top: 2.5rem; padding-top: 1.25rem; border-top: 1px solid var(--line); font-size: 0.9rem; font-weight: 300; color: var(--navy-mid); }
+  .footer-link a { color: var(--morado); font-weight: 500; text-decoration: none; }
+  .footer-link a:hover { text-decoration: underline; }
+  .overlay { position: fixed; inset: 0; background: rgba(29, 29, 61, 0.35); opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 40; }
+  .overlay.open { opacity: 1; pointer-events: auto; }
+  .drawer {
+    position: fixed; top: 0; right: 0; width: var(--drawer-w); height: 100%;
+    background: var(--white); box-shadow: -12px 0 40px rgba(29, 29, 61, 0.12);
+    transform: translateX(105%); transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: 50; display: flex; flex-direction: column;
+  }
+  .drawer.open { transform: translateX(0); }
+  .drawer-head { padding: 1.35rem 1.35rem 1rem; border-bottom: 1px solid var(--line); flex-shrink: 0; position: relative; }
+  .drawer-phase { font-size: 0.68rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--naranja); margin-bottom: 0.35rem; }
+  .drawer-head h2 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.02em; padding-right: 2rem; }
+  .drawer-close {
+    position: absolute; top: 1.1rem; right: 1.1rem; width: 36px; height: 36px;
+    border: none; background: var(--gris); border-radius: 8px; cursor: pointer; font-size: 1.25rem; color: var(--navy); line-height: 1;
+  }
+  .drawer-close:hover { background: var(--morado-pale); }
+  .drawer-body { padding: 1.25rem 1.35rem; overflow-y: auto; flex: 1; font-weight: 300; font-size: 0.95rem; }
+  .drawer-body ul { margin: 0.75rem 0 1rem; padding-left: 1.1rem; }
+  .drawer-body li { margin-bottom: 0.4rem; }
+  .drawer-body strong { font-weight: 500; }
+  .stop { background: #FFF0EB; border-left: 3px solid var(--naranja); padding: 0.7rem 0.85rem; border-radius: 0 6px 6px 0; font-size: 0.88rem; margin: 1rem 0; }
+  .drawer-actions { padding: 1rem 1.35rem 1.5rem; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 0.55rem; flex-shrink: 0; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.75rem 1rem; border-radius: 8px; font: inherit; font-weight: 500; font-size: 0.92rem; cursor: pointer; text-decoration: none; border: none; }
+  .btn-primary { background: var(--morado); color: var(--white); }
+  .btn-primary:hover { background: #6B22D4; }
+  .btn-ghost { background: transparent; color: var(--navy-mid); border: 1px solid var(--line); }
+  .btn-ghost:hover { background: var(--gris); color: var(--navy); }
+  .click-pulse { animation: pulse 2.2s ease-in-out 2; }
+  @keyframes pulse { 0%, 100% { box-shadow: none; } 50% { box-shadow: 0 0 0 4px rgba(129, 45, 242, 0.18); } }
+  .view-switch { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .view-switch button { font: inherit; font-weight: 500; font-size: 0.9rem; padding: 0.55rem 1rem; border-radius: 8px; border: 1px solid var(--line); background: var(--white); color: var(--navy-mid); cursor: pointer; }
+  .view-switch button.active { background: var(--morado); border-color: var(--morado); color: var(--white); }
+  .view-switch button:hover:not(.active) { background: var(--morado-pale); color: var(--navy); }
+  #view-matriz { display: none; max-width: 920px; margin: 0 auto; padding: 1rem 1.25rem 4rem; background: var(--white); font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; font-weight: 400; line-height: 1.55; }
+  #view-matriz.visible { display: block; }
+  #view-flujo.hidden { display: none; }
+  #view-matriz h1, #view-matriz h2, #view-matriz h3 { font-family: 'Clash Display', system-ui, sans-serif; font-weight: 600; color: var(--navy); }
+  #view-matriz h1 { font-size: 1.7rem; margin-bottom: 0.6rem; }
+  #view-matriz h2 { font-size: 1.28rem; margin-top: 2rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--line); }
+  #view-matriz h3 { font-size: 1.05rem; margin-top: 1.3rem; }
+  #view-matriz p, #view-matriz li { margin-bottom: 0.45rem; }
+  #view-matriz ul, #view-matriz ol { padding-left: 1.25rem; margin: 0.4rem 0 0.9rem; }
+  #view-matriz a { color: var(--morado); }
+  #view-matriz table { border-collapse: collapse; width: 100%; margin: 0.75rem 0 1.25rem; font-size: 0.92rem; }
+  #view-matriz th, #view-matriz td { border: 1px solid var(--line); padding: 0.45rem 0.6rem; text-align: left; vertical-align: top; }
+  #view-matriz th { background: var(--morado-pale); }
+  #view-matriz blockquote { border-left: 4px solid var(--morado); margin: 0.8rem 0 1rem; padding: 0.7rem 1rem; background: var(--morado-pale); }
+  #view-matriz code { background: var(--gris); padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.9em; }
+  #view-matriz hr { border: none; border-top: 1px solid var(--line); margin: 1.6rem 0; }
+  #view-matriz .back-flujo { position: sticky; top: 0; z-index: 5; background: rgba(255,255,255,0.95); padding: 0.75rem 0; margin-bottom: 0.5rem; border-bottom: 1px solid var(--line); }
+  #view-matriz .back-flujo button { font: inherit; font-weight: 500; font-size: 0.9rem; padding: 0.55rem 1rem; border-radius: 8px; border: none; background: var(--morado); color: var(--white); cursor: pointer; }
+  .topbar-tools { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin-bottom: 1.25rem; }
+  .search-wrap { position: relative; flex: 1 1 260px; min-width: 220px; }
+  .search-input { width: 100%; font: inherit; font-size: 0.92rem; padding: 0.6rem 0.8rem; border: 1px solid var(--line); border-radius: 8px; background: var(--white); color: var(--navy); }
+  .search-input:focus { outline: none; border-color: var(--morado); box-shadow: 0 0 0 2px rgba(129, 45, 242, 0.15); }
+  .search-results { position: absolute; top: calc(100% + 4px); left: 0; right: 0; margin: 0; padding: 0; background: var(--white); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 28px rgba(29, 29, 61, 0.14); max-height: 340px; overflow-y: auto; z-index: 60; display: none; }
+  .search-results.open { display: block; }
+  .search-results li { list-style: none; }
+  .search-results button { width: 100%; text-align: left; background: none; border: none; border-bottom: 1px solid var(--line); padding: 0.55rem 0.8rem; font: inherit; font-size: 0.9rem; color: var(--navy); cursor: pointer; display: flex; flex-direction: column; gap: 0.15rem; }
+  .search-results li:last-child button { border-bottom: none; }
+  .search-results button:hover, .search-results button.hl { background: var(--morado-pale); }
+  .search-results .r-part { font-size: 0.68rem; color: var(--navy-light); text-transform: uppercase; letter-spacing: 0.08em; }
+  .search-results .r-empty { padding: 0.7rem 0.8rem; color: var(--gris-mid); font-size: 0.88rem; }
+  #view-matriz h1[id], #view-matriz h2[id], #view-matriz h3[id] { scroll-margin-top: 4.5rem; }
+  .anchor-flash { animation: flash 2.2s ease-out 1; }
+  @keyframes flash { 0% { background: #FFF0EB; } 100% { background: transparent; } }
+  .who { display: inline-block; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; background: var(--morado-pale); color: var(--morado); border-radius: 4px; padding: 0.15rem 0.45rem; margin-bottom: 0.45rem; }
+  .who.cx { background: #FFF0EB; color: var(--naranja); }
+  #ap-gate { position: fixed; inset: 0; z-index: 99999; display: flex; align-items: center; justify-content: center; background: linear-gradient(160deg, #1D1D3D 0%, #3a2a6a 50%, #812DF2 100%); font-family: system-ui, -apple-system, sans-serif; }
+  #ap-gate[hidden] { display: none !important; }
+  #ap-gate .box { background: #fff; color: #1D1D3D; width: min(380px, 92vw); padding: 1.75rem 1.5rem 1.5rem; border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
+  #ap-gate .eyebrow { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: #812DF2; margin-bottom: 0.5rem; }
+  #ap-gate h1 { font-size: 1.2rem; margin: 0 0 0.4rem; font-weight: 650; }
+  #ap-gate p { font-size: 0.9rem; color: #6b6b80; margin: 0 0 1rem; line-height: 1.45; }
+  #ap-gate input { width: 100%; box-sizing: border-box; padding: 0.7rem 0.85rem; border: 1px solid #E4E4EC; border-radius: 8px; font: inherit; font-size: 0.95rem; margin-bottom: 0.65rem; }
+  #ap-gate input:focus { outline: none; border-color: #812DF2; box-shadow: 0 0 0 2px rgba(129,45,242,.18); }
+  #ap-gate button { width: 100%; padding: 0.75rem; border: none; border-radius: 8px; background: #812DF2; color: #fff; font: inherit; font-weight: 600; font-size: 0.95rem; cursor: pointer; }
+  #ap-gate button:hover { background: #6B22D4; }
+  #ap-gate .err { color: #c62828; font-size: 0.85rem; min-height: 1.2em; margin: 0.35rem 0 0.5rem; }
+  body.ap-locked > *:not(#ap-gate) { visibility: hidden !important; }
+</style>
+</head>
+<body class="ap-locked">
+
+<div id="ap-gate" role="dialog" aria-modal="true" aria-labelledby="ap-gate-title">
+  <div class="box">
+    <div class="eyebrow">AgendaPro · interno</div>
+    <h1 id="ap-gate-title">Boletas de honorarios</h1>
+    <p>Guía interactiva CX. Solo personal AgendaPro. Ingresá la clave compartida por el equipo.</p>
+    <form id="ap-gate-form" autocomplete="off">
+      <input id="ap-gate-input" type="password" placeholder="Clave de acceso" aria-label="Clave de acceso" autofocus />
+      <div class="err" id="ap-gate-err" aria-live="polite"></div>
+      <button type="submit">Entrar</button>
+    </form>
+  </div>
+</div>
+
+<div class="page" id="top-switch" style="padding-bottom:0;margin-bottom:0;">
+  <span class="badge">Chile · CX · v1 · 14 oct 2026</span>
+  <div class="topbar-tools">
+    <div class="view-switch" role="tablist" aria-label="Vista">
+      <button type="button" class="active" id="tab-flujo">Flujo interactivo</button>
+      <button type="button" id="tab-matriz">Procedimiento completo</button>
+    </div>
+    <div class="search-wrap">
+      <input id="topic-search" class="search-input" type="search" autocomplete="off" placeholder="Buscar tema… (ej. paso 2, SII, RUT, 960200)" aria-label="Buscar tema" />
+      <ul class="search-results" id="search-results" role="listbox" aria-label="Resultados"></ul>
+    </div>
+  </div>
+</div>
+
+<div id="view-flujo">
+  <div class="page">
+    <span class="badge">Chile · solo boleta de honorarios del profesional</span>
+    <h1>Dejar integradas las boletas de honorarios</h1>
+    <p class="lead">Lo que hace el profesional en el SII, y lo que AgendaPro carga después. Haz clic en una etapa.</p>
+    <p class="hint"><strong>Tip:</strong> el panel resume la etapa. El botón “Ir al procedimiento de esta etapa” abre esa sección completa, en este mismo archivo.</p>
+
+    <section class="phase" aria-label="El profesional">
+      <div class="phase-label">El profesional — en su SII</div>
+      <div class="row">
+        <button type="button" class="node click-pulse" data-id="p0"><span class="num">Paso 0</span><span class="title">Puede emitir</span><span class="tap">Ver detalle</span></button>
+        <span class="arrow" aria-hidden="true">→</span>
+        <button type="button" class="node" data-id="p1"><span class="num">Paso 1</span><span class="title">Enviar sus datos</span><span class="tap">Ver detalle</span></button>
+        <span class="arrow" aria-hidden="true">→</span>
+        <button type="button" class="node" data-id="p2"><span class="num">Paso 2</span><span class="title">Autorizar en el SII</span><span class="tap">Ver detalle</span></button>
+        <span class="arrow" aria-hidden="true">→</span>
+        <button type="button" class="node" data-id="p3"><span class="num">Paso 3</span><span class="title">Confirmar y avisar</span><span class="tap">Ver detalle</span></button>
+      </div>
+    </section>
+
+    <section class="phase" aria-label="AgendaPro y el comercio">
+      <div class="phase-label">Después — AgendaPro y el comercio</div>
+      <div class="row">
+        <button type="button" class="node" data-id="p4"><span class="num">Paso 4</span><span class="title">Cargar el RUT</span><span class="tap">Ver detalle</span></button>
+        <span class="arrow" aria-hidden="true">→</span>
+        <button type="button" class="node" data-id="p5"><span class="num">Paso 5</span><span class="title">Comisión en %</span><span class="tap">Ver detalle</span></button>
+        <span class="arrow" aria-hidden="true">→</span>
+        <button type="button" class="node" data-id="p6"><span class="num">Paso 6</span><span class="title">Registrar un pago</span><span class="tap">Ver detalle</span></button>
+        <span class="arrow" aria-hidden="true">→</span>
+        <button type="button" class="node" data-id="p7"><span class="num">Paso 7</span><span class="title">Ver la boleta</span><span class="tap">Ver detalle</span></button>
+      </div>
+    </section>
+
+    <section class="phase" aria-label="Parar">
+      <div class="branch">
+        <div class="branch-side">
+          <div class="phase-label">Parar si aparece esto</div>
+          <div class="row">
+            <button type="button" class="node stop-node" data-id="s1"><span class="num">Stop</span><span class="title">Sin inicio de actividades</span><span class="tap">Ver detalle</span></button>
+            <button type="button" class="node stop-node" data-id="s2"><span class="num">Stop</span><span class="title">Comisión en pesos fijos</span><span class="tap">Ver detalle</span></button>
+            <button type="button" class="node stop-node" data-id="s3"><span class="num">Stop</span><span class="title">Falta RUT del cliente</span><span class="tap">Ver detalle</span></button>
+          </div>
+          <p class="branch-note">Autorizar en el SII y cargar el RUT en AgendaPro no se hacen al mismo tiempo. Primero se verifica la autorización.</p>
+        </div>
+      </div>
+    </section>
+
+    <p class="footer-link">Manual publicado: <a href="https://ayuda.agendapro.com/es/articles/6580756-manual-de-activacion-de-boletas-de-honorarios-electronicas-chile">Activación de boletas de honorarios electrónicas</a> · <a href="https://ayuda.agendapro.com/es/articles/6581351-como-puedo-emitir-boletas-de-honorarios-desde-agendapro">Cómo emitirlas desde AgendaPro</a></p>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" hidden></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" hidden>
+  <div class="drawer-head">
+    <button type="button" class="drawer-close" id="drawer-close" aria-label="Cerrar">×</button>
+    <div class="drawer-phase" id="drawer-phase"></div>
+    <h2 id="drawer-title"></h2>
+  </div>
+  <div class="drawer-body" id="drawer-body"></div>
+  <div class="drawer-actions">
+    <a class="btn btn-primary" id="btn-full" href="#matriz">Ir al procedimiento de esta etapa →</a>
+    <button type="button" class="btn btn-ghost" id="btn-close">Cerrar</button>
+  </div>
+</aside>
+
+<div id="view-matriz">
+  <div class="back-flujo"><button type="button" id="btn-back-flujo">Volver al flujo</button></div>
+  <h1 id="guia-boletas-honorarios">Boletas de honorarios del profesional en AgendaPro</h1>
+  <p>Chile. Uso interno de CX, onboarding y soporte. El profesional hace los pasos 0 a 3 en su cuenta del SII. AgendaPro carga el RUT recién cuando esa autorización está hecha.</p>
+  <p>Fuente del paso a paso del profesional: <a href="https://ayuda.agendapro.com/es/articles/6580756-manual-de-activacion-de-boletas-de-honorarios-electronicas-chile">Manual de activación de boletas de honorarios electrónicas</a> (21 jul 2026) y <a href="https://ayuda.agendapro.com/es/articles/6581351-como-puedo-emitir-boletas-de-honorarios-desde-agendapro">Cómo emitir boletas de honorarios desde AgendaPro</a>. El orden “verificar autorización y después cargar el RUT” sale del procedimiento interno de implementación POS y e-Boletas Chile.</p>
+
+  <h2 id="quien-hace-que">Quién hace qué</h2>
+  <table>
+    <tr><th>Quién</th><th>Qué hace</th></tr>
+    <tr><td>Profesional</td><td>Tiene inicio de actividades. Envía RUT, giro, dirección y comuna. Autoriza a AgendaPro en el SII. Confirma la dirección y avisa por el chat.</td></tr>
+    <tr><td>AgendaPro (CX / soporte)</td><td>Verifica esa autorización. Recién entonces carga el RUT en Administración → Facturación. Activa la emisión cuando el profesional avisa.</td></tr>
+    <tr><td>Administrador del comercio</td><td>Deja la comisión de ese profesional en porcentaje, si el modelo es Split. En altas siguientes puede cargar el RUT él mismo, después de la autorización en el SII.</td></tr>
+  </table>
+  <div class="stop"><strong>No pedir la clave del SII.</strong> El profesional entra con su clave. AgendaPro no la recibe por chat, correo ni WhatsApp.</div>
+
+  <h2 id="paso-0-confirmar-que-puede-emitir">Paso 0. Confirmar que puede emitir</h2>
+  <p class="who">Lo confirma CX antes de mandar al profesional al SII</p>
+  <ol>
+    <li>El comercio es de <strong>Chile</strong>. La boleta de honorarios no existe en los otros países.</li>
+    <li>La emisión de boletas de honorarios está <strong>contratada</strong>. No viene en el plan por defecto.</li>
+    <li>En la cuenta ya se ve <strong>Administración → Facturación</strong> (facturación Chile activa con invoice system tready). Si no aparece, este profesional todavía no puede quedar integrado: primero va la activación de boletas del comercio.</li>
+    <li>El profesional tiene <strong>inicio de actividades</strong> en el SII. Sin eso, el SII no le deja emitir boletas de honorarios.</li>
+  </ol>
+  <div class="stop"><strong>Stop.</strong> Sin inicio de actividades no sigas este flujo con esa persona. La salida operativa es que sus servicios salgan en boleta del comercio, no en boleta de honorarios. Lo define el comercio. Ver <a href="#stop-sin-inicio-de-actividades">Sin inicio de actividades</a>.</div>
+
+  <h2 id="paso-1-enviar-datos">Paso 1. Enviar sus datos a AgendaPro</h2>
+  <p class="who">Lo hace el profesional</p>
+  <p>Antes de entrar al SII, el profesional envía estos cuatro datos. Sirven para configurar su ficha de emisor:</p>
+  <ul>
+    <li>RUT del profesional que va a emitir.</li>
+    <li>Giro.</li>
+    <li>Dirección.</li>
+    <li>Comuna.</li>
+  </ul>
+  <p>Pídelos por el chat del caso. No hace falta que mande capturas todavía: la captura corresponde al paso 2, cuando ya autorizó.</p>
+
+  <h2 id="paso-2-autorizar-en-el-sii">Paso 2. Autorizar a AgendaPro en el SII</h2>
+  <p class="who">Lo hace el profesional, con su clave del SII</p>
+  <p>Esta ruta es la de <strong>boleta de honorarios electrónica</strong>. No es la de e-Boletas del comercio ni la del certificado digital (.pfx). Esos caminos emiten la boleta de la empresa, no la del profesional.</p>
+  <ol>
+    <li>Entra a <a href="https://www.sii.cl/">sii.cl</a> → <strong>Servicios online</strong> → <strong>Boleta de honorarios electrónica</strong>.</li>
+    <li><strong>Emisor de boleta de honorarios</strong>.</li>
+    <li><strong>Delegar emisión a un usuario autorizado</strong>.</li>
+    <li><strong>Autorizar o revocar a un usuario autorizado</strong>.</li>
+    <li><strong>Autorizar usuarios</strong>.</li>
+    <li>Ingresa el RUT de empresa <strong>76.233.336-8</strong>. Tiene que aparecer la razón social <strong>Gunei investment SpA</strong>. Si el nombre no calza, no continúes: el RUT está mal escrito.</li>
+  </ol>
+  <div class="stop"><strong>Stop.</strong> No cargues el RUT del profesional en AgendaPro en este momento. Primero queda autorizada Gunei investment SpA. Autorizar y cargar el RUT no van en paralelo.</div>
+
+  <h2 id="paso-3-confirmar-direccion-y-avisar">Paso 3. Confirmar la dirección y avisar por el chat</h2>
+  <p class="who">Lo hace el profesional</p>
+  <ol>
+    <li>En la misma pantalla del SII, corrobora la dirección y haz clic en <strong>confirmar</strong>.</li>
+    <li>El profesional avisa por el chat de AgendaPro que ya autorizó, idealmente con una captura donde se vea el RUT 76.233.336-8 y la razón social Gunei investment SpA.</li>
+    <li>Con ese aviso, AgendaPro activa la emisión de sus boletas de honorarios. El manual publicado lo deja así: sin el aviso, la autorización en el SII no alcanza para que salga la boleta desde la cuenta.</li>
+  </ol>
+
+  <h2 id="paso-4-cargar-el-rut">Paso 4. Cargar el RUT en AgendaPro</h2>
+  <p class="who cx">Lo hace AgendaPro, después de verificar el paso 2</p>
+  <ol>
+    <li>Confirma que la autorización del paso 2 ya está hecha (captura o recorrido en pantalla con el profesional).</li>
+    <li>En la cuenta: <strong>Administración → Facturación</strong>.</li>
+    <li>En profesionales, la columna se llama exactamente <code>rut</code>, en minúscula.</li>
+    <li>Carga el RUT de ese profesional.</li>
+    <li>Si la columna se acaba de crear y queda vacía, al cerrar sesión desaparece. Escribe al menos un valor al crearla (el procedimiento usa <code>1-9</code> como marca) y enseguida reemplázalo por los RUT reales.</li>
+  </ol>
+  <p>Los profesionales que entren después aparecen solos en Facturación, sin RUT. El administrador del comercio puede cargar ese RUT. La condición no cambia: ese profesional ya autorizó a AgendaPro en el SII. Si la figura no es boleta de honorarios (quiere boleta afecta propia o sociedad de profesionales), cargar el RUT no alcanza: se escala a soporte / Back Office.</p>
+
+  <h2 id="paso-5-comision-en-porcentaje">Paso 5. Dejar la comisión en porcentaje</h2>
+  <p class="who cx">Lo hace el administrador del comercio, si el modelo es Split</p>
+  <p>Split es el caso habitual: una parte sale como boleta de honorarios del profesional (su comisión) y el resto como boleta del comercio. Las dos suman el total cobrado.</p>
+  <ul>
+    <li>La comisión de ese profesional, en ese servicio, tiene que estar en <strong>porcentaje</strong>.</li>
+    <li>Un monto fijo en pesos no emite la boleta de honorarios. En campo, una comisión fija dejó de emitir; al pasarla a porcentaje, emitió.</li>
+    <li>Dónde se cambia: <strong>Administración → Comisiones</strong>. Si la mayoría de los servicios de esa persona usan el mismo porcentaje, “Editar por defecto” lo aplica a los servicios actuales. Los servicios que se creen después quedan en 0 hasta que alguien los edite. Volver a poner el valor por defecto puede pisar los porcentajes especiales.</li>
+  </ul>
+  <p>Si el acuerdo es que el profesional emite el <strong>100%</strong> y el comercio le cobra el arriendo del sillón aparte, no es Split: en Back Office la regla es “emite 100% boleta de honorarios del profesional”. El arriendo lo factura el comercio, fuera de esa división. AgendaPro no redacta ni valida ese contrato.</p>
+  <div class="stop"><strong>Retención.</strong> Cuando AgendaPro emite la boleta de honorarios del profesional hacia el cliente final, ni el comercio ni AgendaPro le retienen el impuesto. El comercio le paga su porcentaje completo y el profesional declara su retención en el SII. Es distinto de cuando una empresa le emite una boleta de honorarios al profesional: ahí la empresa sí retiene. AgendaPro no asesora el monto de esa retención.</div>
+
+  <h2 id="paso-6-registrar-el-pago">Paso 6. Registrar un pago con ese profesional</h2>
+  <p class="who">Lo hace quien cobra en AgendaPro</p>
+  <p>La boleta sale cuando hay un <strong>pago registrado</strong>. Los disparadores son: pago con el POS de AgendaPro, pago online (sitio o link de cobro) y el registro manual del pago de una reserva, servicio, plan o producto.</p>
+  <ol>
+    <li>Registra la venta desde la cita en Agenda, o desde nueva venta.</li>
+    <li>Revisa los datos del cliente y el servicio.</li>
+    <li>Si el pago se registra <strong>desde la cita</strong>, el profesional de esa cita queda como emisor por defecto.</li>
+    <li>Si el ítem se <strong>agrega al carro</strong>, hay que agregar al profesional. Si no, la boleta de honorarios no sale a su nombre.</li>
+    <li>Elige el método de pago y cierra la venta.</li>
+  </ol>
+  <p>Quien hace esta prueba necesita permiso para ver <strong>Ventas</strong>.</p>
+  <div class="stop"><strong>El cobro rápido del POS no emite boleta.</strong> Ingresar un monto a mano en la máquina no crea una venta en AgendaPro, así que no hay documento.</div>
+  <h3 id="rut-del-cliente-final">RUT del cliente final</h3>
+  <p>El SII exige el RUT del cliente para emitir la boleta de honorarios, salvo el giro <strong>960200</strong> (Peluquería y otros tratamientos de belleza). Con otro giro, si la ficha del cliente no tiene un RUT válido, esa boleta de honorarios no se emite. La boleta del comercio puede salir igual.</p>
+  <p>El giro de un RUT se consulta en el SII: <a href="https://zeus.sii.cl/cvc/stc/stc.html">Consulta de situación tributaria de terceros</a>.</p>
+
+  <h2 id="paso-7-ver-la-boleta">Paso 7. Ver la boleta</h2>
+  <p class="who">Lo revisa quien tiene permiso de Ventas</p>
+  <ol>
+    <li>Ve a <strong>Ventas → Ventas facturadas</strong> y busca ese pago.</li>
+    <li>Si la cuenta está en borrador, la columna DTE muestra que todavía no se emitió. Abre <strong>DTE</strong>. En esa pestaña se puede cambiar la fecha de emisión y hacer clic en <strong>Emitir</strong>. El cliente la recibe al correo.</li>
+    <li>Cuando queda emitida, el estado del DTE en Ventas pasa a emitido.</li>
+    <li>Si la emisión ya está en automático, la boleta se genera al registrar el pago y toma la <strong>fecha del pago</strong>.</li>
+  </ol>
+  <p>En un Split bien armado se ven dos documentos que suman el total: la boleta de honorarios del profesional por su porcentaje y la boleta del comercio por el resto.</p>
+  <p>Para hacer una boleta de honorarios a mano, sin un pago en AgendaPro, el profesional la emite en el SII. AgendaPro no la genera si no hay un pago registrado.</p>
+
+  <h2 id="stop-sin-inicio-de-actividades">Stop. Sin inicio de actividades</h2>
+  <p>Si el profesional no tiene inicio de actividades, papeles, o es una persona que el SII no deja emitir (el procedimiento cita el caso de un extranjero sin inicio), no se le integra boleta de honorarios.</p>
+  <p>La excepción operativa es <strong>100% boleta del comercio</strong> para esa persona, aunque en la cuenta tenga comisión. El IVA de esa parte lo asume el comercio; eso lo conversan ellos con su contador. AgendaPro no lo redefine.</p>
+
+  <h2 id="stop-comision-en-pesos">Stop. Comisión en pesos fijos</h2>
+  <p>Con Split, una comisión en monto fijo no emite la boleta de honorarios. Antes de la prueba del paso 6, pásala a porcentaje en Administración → Comisiones. Si el comercio no quiere cambiar el monto fijo, no hay Split para esa persona.</p>
+
+  <h2 id="stop-rut-cliente">Stop. Falta el RUT del cliente</h2>
+  <p>Síntoma: la boleta de honorarios queda pendiente y el error habla de RUT de cliente inválido o ausente.</p>
+  <ol>
+    <li>Abre el detalle de esa venta.</li>
+    <li>Revisa el RUT en la ficha del cliente, con dígito verificador.</li>
+    <li>Si falta o está mal, corrígelo y vuelve a emitir desde la venta.</li>
+    <li>Si el comercio dice que antes emitía sin RUT, revisa el giro. Solo el <strong>960200</strong> permite la boleta de honorarios sin RUT del cliente. Si el giro es ese y aun así no emite, el problema es otro: se diagnostica como corte de emisión, no como este paso.</li>
+  </ol>
+
+  <h2 id="que-no-es-este-camino">Qué no es este camino</h2>
+  <ul>
+    <li><strong>Boleta del comercio (afecta o exenta).</strong> Esa pide certificado digital para fines del SII y la autenticación de la empresa. El emisor que se autoriza en e-Boletas es Pablo Marambio, RUT 15.776.844-1. No uses esa ruta para la boleta de honorarios del profesional.</li>
+    <li><strong>Certificado vencido.</strong> Ese error es de la firma de la boleta de empresa. La solución es un certificado nuevo con su clave. No se resuelve reintentando la boleta de honorarios.</li>
+    <li><strong>Profesional con DTE propio de primera categoría.</strong> Cargar el RUT no alcanza. Se escala a soporte / Back Office para una regla por profesional, con documento del profesional y documento del comercio, ambos de primera categoría.</li>
+    <li><strong>e-Boletas propio del profesional.</strong> El procedimiento interno de implementación lo nombra como condición del Split. El manual publicado del 21 jul 2026 no pide ese paso: pide delegar en Boleta de honorarios electrónica. Hasta que producto lo confirme, sigue el manual publicado. Queda <strong>por validar</strong>.</li>
+  </ul>
+
+  <h2 id="mensaje-para-el-profesional">Mensaje para el profesional</h2>
+  <p>Se puede pegar en el chat. No pide clave del SII.</p>
+  <blockquote>
+    <p>Para dejar tus boletas de honorarios integradas en AgendaPro, necesitas inicio de actividades en el SII. Es un servicio adicional: no viene en el plan por defecto.</p>
+    <p>1. Envíame tu RUT, giro, dirección y comuna.</p>
+    <p>2. Entra a sii.cl → Servicios online → Boleta de honorarios electrónica → Emisor de boleta de honorarios → Delegar emisión a un usuario autorizado → Autorizar o revocar a un usuario autorizado → Autorizar usuarios.</p>
+    <p>3. Autoriza el RUT 76.233.336-8. Tiene que aparecer la razón social Gunei investment SpA. Confirma tu dirección.</p>
+    <p>4. Avísame por este chat cuando quede listo, con una captura. Con eso activamos la emisión. Tu clave del SII no me la envíes: la usas tú en el sitio del SII.</p>
+    <p>Guía: https://ayuda.agendapro.com/es/articles/6580756-manual-de-activacion-de-boletas-de-honorarios-electronicas-chile</p>
+  </blockquote>
+
+  <h2 id="fuentes">Fuentes</h2>
+  <ul>
+    <li><a href="https://ayuda.agendapro.com/es/articles/6580756-manual-de-activacion-de-boletas-de-honorarios-electronicas-chile">Manual de activación de boletas de honorarios electrónicas — Chile</a></li>
+    <li><a href="https://ayuda.agendapro.com/es/articles/6581351-como-puedo-emitir-boletas-de-honorarios-desde-agendapro">Cómo puedo emitir boletas de honorarios desde AgendaPro</a></li>
+    <li>Procedimiento interno POS + e-Boletas Chile: autorización del profesional antes de la columna <code>rut</code>, comisión en porcentaje, giro 960200, cobro rápido sin boleta.</li>
+  </ul>
+</div>
+
+<script>
+(function () {
+  const STEPS = {
+    p0: {
+      phase: 'El profesional',
+      title: 'Paso 0 · Puede emitir',
+      anchor: 'paso-0-confirmar-que-puede-emitir',
+      html: `<ul>
+        <li>Chile, y el add-on de boletas de honorarios contratado.</li>
+        <li>Inicio de actividades en el SII.</li>
+        <li>En la cuenta ya existe Administración → Facturación.</li>
+      </ul>
+      <div class="stop">Sin inicio de actividades, esa persona no sigue este flujo.</div>`
+    },
+    p1: {
+      phase: 'El profesional',
+      title: 'Paso 1 · Enviar sus datos',
+      anchor: 'paso-1-enviar-datos',
+      html: `<ul>
+        <li>RUT, giro, dirección y comuna.</li>
+        <li>Los pide el chat antes de la autorización.</li>
+      </ul>`
+    },
+    p2: {
+      phase: 'El profesional',
+      title: 'Paso 2 · Autorizar en el SII',
+      anchor: 'paso-2-autorizar-en-el-sii',
+      html: `<ul>
+        <li>sii.cl → Servicios online → Boleta de honorarios electrónica.</li>
+        <li>Emisor de boleta de honorarios → Delegar emisión a un usuario autorizado → Autorizar o revocar → Autorizar usuarios.</li>
+        <li>RUT <strong>76.233.336-8</strong>, razón social <strong>Gunei investment SpA</strong>.</li>
+      </ul>
+      <div class="stop">No cargues el RUT en AgendaPro hasta verificar esta autorización.</div>`
+    },
+    p3: {
+      phase: 'El profesional',
+      title: 'Paso 3 · Confirmar y avisar',
+      anchor: 'paso-3-confirmar-direccion-y-avisar',
+      html: `<ul>
+        <li>Confirma la dirección en el SII.</li>
+        <li>Avisa por el chat, con captura del RUT y la razón social.</li>
+        <li>Con ese aviso AgendaPro activa la emisión.</li>
+      </ul>`
+    },
+    p4: {
+      phase: 'AgendaPro',
+      title: 'Paso 4 · Cargar el RUT',
+      anchor: 'paso-4-cargar-el-rut',
+      html: `<ul>
+        <li>Administración → Facturación → columna <code>rut</code>.</li>
+        <li>Solo después de verificar el paso 2.</li>
+        <li>Si la columna nace vacía y cierran sesión, desaparece.</li>
+      </ul>`
+    },
+    p5: {
+      phase: 'El comercio',
+      title: 'Paso 5 · Comisión en porcentaje',
+      anchor: 'paso-5-comision-en-porcentaje',
+      html: `<ul>
+        <li>Split: boleta de honorarios por el % del profesional + boleta del comercio por el resto.</li>
+        <li>Monto fijo en pesos no emite la boleta de honorarios.</li>
+        <li>100% del profesional es arriendo de sillón, no Split.</li>
+      </ul>`
+    },
+    p6: {
+      phase: 'Quien cobra',
+      title: 'Paso 6 · Registrar un pago',
+      anchor: 'paso-6-registrar-el-pago',
+      html: `<ul>
+        <li>Desde la cita, el profesional queda por defecto.</li>
+        <li>Si el ítem entra al carro, hay que agregarlo.</li>
+        <li>Cobro rápido del POS: no emite.</li>
+        <li>Salvo giro 960200, hace falta el RUT del cliente.</li>
+      </ul>`
+    },
+    p7: {
+      phase: 'Quien cobra',
+      title: 'Paso 7 · Ver la boleta',
+      anchor: 'paso-7-ver-la-boleta',
+      html: `<ul>
+        <li>Ventas → Ventas facturadas → DTE.</li>
+        <li>En borrador: abrir DTE y Emitir.</li>
+        <li>En automático: sale al registrar el pago, con la fecha del pago.</li>
+      </ul>`
+    },
+    s1: {
+      phase: 'Stop',
+      title: 'Sin inicio de actividades',
+      anchor: 'stop-sin-inicio-de-actividades',
+      html: `<p>No se integra boleta de honorarios. La salida es 100% boleta del comercio para esa persona. Lo define el comercio.</p>`
+    },
+    s2: {
+      phase: 'Stop',
+      title: 'Comisión en pesos fijos',
+      anchor: 'stop-comision-en-pesos',
+      html: `<p>Pásala a porcentaje en Administración → Comisiones antes de la prueba. Si no cambia, no hay Split.</p>`
+    },
+    s3: {
+      phase: 'Stop',
+      title: 'Falta RUT del cliente',
+      anchor: 'stop-rut-cliente',
+      html: `<p>Carga un RUT válido en la ficha y reemite. La excepción es el giro 960200, peluquería y otros tratamientos de belleza.</p>`
+    }
+  };
+
+  const drawer = document.getElementById('drawer');
+  const overlay = document.getElementById('overlay');
+  const phaseEl = document.getElementById('drawer-phase');
+  const titleEl = document.getElementById('drawer-title');
+  const bodyEl = document.getElementById('drawer-body');
+  const btnFull = document.getElementById('btn-full');
+  let lastFocus = null;
+
+  function openStep(id) {
+    const s = STEPS[id];
+    if (!s) return;
+    lastFocus = document.activeElement;
+    phaseEl.textContent = s.phase;
+    titleEl.textContent = s.title;
+    bodyEl.innerHTML = s.html;
+    btnFull.dataset.anchor = s.anchor;
+    btnFull.href = '#' + s.anchor;
+    document.querySelectorAll('.node').forEach(n => n.classList.toggle('active', n.dataset.id === id));
+    drawer.hidden = false;
+    overlay.hidden = false;
+    requestAnimationFrame(() => {
+      drawer.classList.add('open');
+      overlay.classList.add('open');
+    });
+    document.getElementById('drawer-close').focus();
+  }
+  function closeDrawer() {
+    drawer.classList.remove('open');
+    overlay.classList.remove('open');
+    document.querySelectorAll('.node.active').forEach(n => n.classList.remove('active'));
+    setTimeout(() => {
+      drawer.hidden = true;
+      overlay.hidden = true;
+      if (lastFocus) lastFocus.focus();
+    }, 220);
+  }
+  document.querySelectorAll('.node').forEach(btn => {
+    btn.addEventListener('click', () => openStep(btn.dataset.id));
+  });
+  document.getElementById('drawer-close').addEventListener('click', closeDrawer);
+  document.getElementById('btn-close').addEventListener('click', closeDrawer);
+  overlay.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && drawer.classList.contains('open')) closeDrawer();
+  });
+
+  const viewFlujo = document.getElementById('view-flujo');
+  const viewMatriz = document.getElementById('view-matriz');
+  const tabFlujo = document.getElementById('tab-flujo');
+  const tabMatriz = document.getElementById('tab-matriz');
+  const topSwitch = document.getElementById('top-switch');
+
+  function showFlujo() {
+    viewFlujo.classList.remove('hidden');
+    viewMatriz.classList.remove('visible');
+    tabFlujo.classList.add('active');
+    tabMatriz.classList.remove('active');
+    topSwitch.style.display = '';
+    history.replaceState(null, '', '#flujo');
+    window.scrollTo(0, 0);
+  }
+  function showMatriz(anchor) {
+    viewFlujo.classList.add('hidden');
+    viewMatriz.classList.add('visible');
+    tabFlujo.classList.remove('active');
+    tabMatriz.classList.add('active');
+    topSwitch.style.display = '';
+    history.replaceState(null, '', anchor ? ('#' + anchor) : '#matriz');
+    function scrollToAnchor() {
+      if (!anchor) { window.scrollTo(0, 0); return; }
+      const el = document.getElementById(anchor);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.classList.remove('anchor-flash');
+        void el.offsetWidth;
+        el.classList.add('anchor-flash');
+        setTimeout(function () { el.classList.remove('anchor-flash'); }, 2400);
+      } else {
+        window.scrollTo(0, 0);
+      }
+    }
+    requestAnimationFrame(function () { requestAnimationFrame(scrollToAnchor); });
+    setTimeout(scrollToAnchor, 120);
+  }
+  tabFlujo.addEventListener('click', showFlujo);
+  tabMatriz.addEventListener('click', () => showMatriz());
+  document.getElementById('btn-back-flujo').addEventListener('click', showFlujo);
+
+  function norm(s) {
+    return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+  const headings = Array.prototype.slice.call(viewMatriz.querySelectorAll('h1[id], h2[id], h3[id]'));
+  const INDEX = headings.map(function (h) {
+    const t = h.textContent.trim();
+    let label = 'Sección';
+    if (/^paso\s/i.test(t)) label = 'Paso';
+    else if (/^stop/i.test(t)) label = 'Stop';
+    else if (h.tagName.toLowerCase() === 'h3') label = 'Detalle';
+    return { id: h.id, text: t, norm: norm(t), part: label };
+  });
+  const input = document.getElementById('topic-search');
+  const resultsEl = document.getElementById('search-results');
+  let matches = [];
+  let hlIndex = -1;
+  function closeResults() { resultsEl.classList.remove('open'); resultsEl.innerHTML = ''; hlIndex = -1; matches = []; }
+  function highlight(delta) {
+    const btns = resultsEl.querySelectorAll('button');
+    if (!btns.length) return;
+    hlIndex = (hlIndex + delta + btns.length) % btns.length;
+    btns.forEach(function (b, i) { b.classList.toggle('hl', i === hlIndex); });
+    btns[hlIndex].scrollIntoView({ block: 'nearest' });
+  }
+  function render(q) {
+    const nq = norm(q).trim();
+    if (!nq) { closeResults(); return; }
+    const tokens = nq.split(/\s+/).filter(Boolean);
+    matches = INDEX.filter(function (item) {
+      return tokens.every(function (tk) { return item.norm.indexOf(tk) !== -1; });
+    }).slice(0, 12);
+    if (!matches.length) {
+      resultsEl.innerHTML = '<li class="r-empty">Sin coincidencias</li>';
+      resultsEl.classList.add('open');
+      hlIndex = -1;
+      return;
+    }
+    resultsEl.innerHTML = matches.map(function (m) {
+      return '<li><button type="button" data-anchor="' + m.id + '"><span class="r-part">' + m.part + '</span><span class="r-text">' + m.text.replace(/</g, '&lt;') + '</span></button></li>';
+    }).join('');
+    resultsEl.classList.add('open');
+    hlIndex = -1;
+  }
+  function goTo(anchor) {
+    closeResults();
+    input.value = '';
+    showMatriz(anchor);
+  }
+  input.addEventListener('input', function () { render(input.value); });
+  input.addEventListener('focus', function () { if (input.value.trim()) render(input.value); });
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); highlight(1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); highlight(-1); }
+    else if (e.key === 'Enter') {
+      e.preventDefault();
+      const pick = hlIndex >= 0 ? matches[hlIndex] : matches[0];
+      if (pick) goTo(pick.id);
+    } else if (e.key === 'Escape') { closeResults(); input.blur(); }
+  });
+  resultsEl.addEventListener('click', function (e) {
+    const btn = e.target.closest('button[data-anchor]');
+    if (btn) goTo(btn.getAttribute('data-anchor'));
+  });
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.search-wrap')) closeResults();
+  });
+  btnFull.addEventListener('click', function (e) {
+    e.preventDefault();
+    const anchor = btnFull.dataset.anchor || '';
+    if (drawer.classList.contains('open')) closeDrawer();
+    setTimeout(function () { showMatriz(anchor); }, 80);
+  });
+  const h = location.hash.replace(/^#/, '');
+  if (h && h !== 'flujo' && h !== 'matriz') showMatriz(h);
+  else if (h === 'matriz') showMatriz();
+})();
+</script>
+<script>
+(function () {
+  var KEY = 'ap_bhe_profesional_gate_v1';
+  function dig(s) {
+    var h = 2166136261 >>> 0;
+    for (var i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619) >>> 0;
+    }
+    return (h >>> 0).toString(16);
+  }
+  var EXPECT = dig('agendapro-cx');
+  function unlock() {
+    document.body.classList.remove('ap-locked');
+    var g = document.getElementById('ap-gate');
+    if (g) g.hidden = true;
+  }
+  function lock() {
+    document.body.classList.add('ap-locked');
+    var g = document.getElementById('ap-gate');
+    if (g) g.hidden = false;
+  }
+  try { if (sessionStorage.getItem(KEY) === '1') { unlock(); return; } } catch (e) {}
+  lock();
+  var form = document.getElementById('ap-gate-form');
+  var input = document.getElementById('ap-gate-input');
+  var err = document.getElementById('ap-gate-err');
+  if (!form) return;
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var v = (input.value || '').trim();
+    if (dig(v) === EXPECT) {
+      try { sessionStorage.setItem(KEY, '1'); } catch (err2) {}
+      unlock();
+    } else {
+      err.textContent = 'Clave incorrecta. Pedila al equipo CX.';
+      input.select();
+    }
+  });
+})();
+</script>
+</body>
+</html>
